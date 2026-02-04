@@ -23,6 +23,9 @@ tenacity>=8.2.0
 aiohttp>=3.9.0
 asyncio>=3.4.3
 
+# Web application
+flask>=3.0.0
+
 # Utilities
 python-dotenv>=1.0.0
 tqdm>=4.66.0  # Progress bars
