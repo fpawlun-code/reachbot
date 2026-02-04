@@ -73,63 +73,160 @@ class PanoramaFirmScraper:
         """
         logger.info(f"Searching Panorama Firm: {industry} in {city}")
 
-        # Buduj URL wyszukiwania
-        # Format: https://panoramafirm.pl/szukaj?k=restauracje&l=szczecin
-        search_url = f"{self.base_url}/szukaj"
-        params = {
-            "k": industry,
-            "l": city.lower()
-        }
+        # Użyj URL kategorii zamiast wyszukiwarki (lepsza struktura)
+        # Format: https://panoramafirm.pl/restauracje/szczecin
+        category_url = f"{self.base_url}/{quote(industry)}/{city.lower()}"
 
         results_count = 0
         page = 1
 
         while results_count < max_results:
-            params["p"] = page
-            logger.info(f"Fetching page {page}...")
+            url = category_url if page == 1 else f"{category_url},{page}"
+            logger.info(f"Fetching page {page}: {url}")
 
-            response = make_request(search_url, params=params)
+            response = make_request(url)
             if not response:
                 logger.warning(f"Failed to fetch page {page}")
                 break
 
             soup = BeautifulSoup(response.text, "lxml")
+            html = response.text
 
-            # Znajdź wszystkie wyniki na stronie
-            results = soup.select("div.company-item, article.company-item, div.search-result")
-
-            if not results:
-                # Próbuj alternatywne selektory
-                results = soup.select("div[data-company-id], a.company-link")
+            # Nowa struktura - szukaj linków do firm
+            # Klasa: addax-cs_hl_hit_company_name_click
+            results = soup.select("a.addax-cs_hl_hit_company_name_click")
 
             if not results:
-                logger.info(f"No more results on page {page}")
+                # Alternatywnie - szukaj wszystkich linków do /firma/
+                results = soup.select("a[href*='/firma/']")
+
+            if not results:
+                # Ostatnia próba - szukaj w article/div
+                results = soup.select("article a[href*='panoramafirm.pl'], div.company a")
+
+            if not results:
+                logger.info(f"No results on page {page}")
                 break
 
-            for result in results:
+            for link in results:
                 if results_count >= max_results:
                     break
 
                 try:
-                    business = self._parse_search_result(result, industry)
+                    href = link.get("href", "")
+                    name = clean_text(link.get_text())
+
+                    if not name or not href:
+                        continue
+
+                    # Pełny URL
+                    if not href.startswith("http"):
+                        href = urljoin(self.base_url, href)
+
+                    # Pobierz szczegóły ze strony firmy
+                    business = self._fetch_company_details(href, name, industry)
                     if business:
-                        # Pobierz dodatkowe szczegóły ze strony firmy
-                        detailed = self._get_business_details(business)
-                        yield detailed or business
+                        yield business
                         results_count += 1
-                        random_delay()
+                        logger.debug(f"  + {name}")
+                        random_delay(2, 4)
 
                 except Exception as e:
-                    logger.debug(f"Error parsing result: {e}")
+                    logger.debug(f"Error processing link: {e}")
                     continue
 
-            # Sprawdź paginację
-            next_page = soup.select_one("a.pagination-next, a[rel='next'], li.next a")
-            if not next_page:
+            # Sprawdź paginację - szukaj linku do następnej strony
+            next_link = soup.select_one("a[rel='next'], a:contains('Następna'), a:contains('›')")
+            if not next_link and page < 5:  # Max 5 stron
+                # Spróbuj następnej strony
+                page += 1
+                random_delay(3, 5)
+            elif next_link:
+                page += 1
+                random_delay(3, 5)
+            else:
                 break
 
-            page += 1
-            random_delay(3, 6)  # Dłuższa przerwa między stronami
+    def _fetch_company_details(
+        self,
+        url: str,
+        name: str,
+        industry: str
+    ) -> Optional[Business]:
+        """Pobiera szczegóły firmy z jej strony profilu."""
+        try:
+            response = make_request(url)
+            if not response:
+                return Business(name=name, industry=industry, source="panorama_firm")
+
+            soup = BeautifulSoup(response.text, "lxml")
+            html = response.text
+
+            # Adres
+            address = ""
+            addr_elem = soup.select_one(
+                "[itemprop='address'], .address, address"
+            )
+            if addr_elem:
+                address = clean_text(addr_elem.get_text())
+
+            # Telefon
+            phone = ""
+            phone_elem = soup.select_one(
+                "a[href^='tel:'], [itemprop='telephone']"
+            )
+            if phone_elem:
+                phone = phone_elem.get("href", "").replace("tel:", "")
+                if not phone:
+                    phone = clean_text(phone_elem.get_text())
+
+            # Alternatywnie - wyciągnij z tekstu
+            if not phone:
+                phones = extract_phones(html)
+                if phones:
+                    phone = phones[0]
+
+            # Email
+            email = ""
+            email_elem = soup.select_one("a[href^='mailto:']")
+            if email_elem:
+                email = email_elem.get("href", "").replace("mailto:", "")
+
+            if not email:
+                emails = extract_emails(html)
+                if emails:
+                    email = emails[0]
+
+            # Strona www
+            website = ""
+            www_elem = soup.select_one(
+                "a[data-stat-id='www'], a.website, a[rel='nofollow'][href^='http']"
+            )
+            if www_elem:
+                href = www_elem.get("href", "")
+                if is_valid_website(href):
+                    website = href
+
+            # Social media
+            social = extract_social_media(html)
+
+            return Business(
+                name=name,
+                industry=industry,
+                address=address,
+                phone=phone,
+                email=email,
+                website=website,
+                facebook=social.get("facebook", ""),
+                instagram=social.get("instagram", ""),
+                linkedin=social.get("linkedin", ""),
+                source="panorama_firm",
+                has_website=bool(website)
+            )
+
+        except Exception as e:
+            logger.debug(f"Error fetching details for {name}: {e}")
+            return Business(name=name, industry=industry, source="panorama_firm")
 
     def _parse_search_result(self, element, industry: str) -> Optional[Business]:
         """Parsuje pojedynczy wynik wyszukiwania."""
