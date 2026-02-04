@@ -1,0 +1,55 @@
+# Environment
+.env
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Output files (zawierają dane osobowe)
+output/*.xlsx
+output/*.csv
+output/*.docx
+output/*.json
+output/*.txt
+output/*.html
+!output/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Chrome/Selenium
+chromedriver
+chromedriver.exe
