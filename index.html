@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szczecin Business Scraper</title>
+    <title>Szczecin Business Scraper - Znajdź firmy bez stron WWW</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -16,26 +16,17 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        .industry-btn {
-            background: #f8f9fa;
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
-            padding: 10px 15px;
-            margin: 5px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .industry-btn:hover {
-            background: #e9ecef;
-            border-color: #667eea;
-        }
-        .industry-btn.selected {
-            background: #667eea;
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            border-color: #667eea;
+            font-size: 1.5rem;
         }
-        .progress-container { display: none; }
-        .results-container { display: none; }
         .business-card {
             border-left: 4px solid #667eea;
             transition: transform 0.2s;
@@ -43,152 +34,146 @@
         .business-card:hover {
             transform: translateX(5px);
         }
-        .scan-btn {
+        .demo-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             padding: 15px 40px;
             font-size: 1.1rem;
         }
-        .scan-btn:hover {
+        .demo-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
-        .scan-btn:disabled {
-            transform: none;
-            opacity: 0.7;
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Consolas', monospace;
+            overflow-x: auto;
         }
+        .code-block .comment { color: #6a9955; }
+        .code-block .command { color: #dcdcaa; }
     </style>
 </head>
 <body>
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-lg-10">
+                <!-- Header -->
                 <div class="text-center text-white mb-4">
                     <h1 class="display-4 fw-bold">
                         <i class="bi bi-search"></i> Szczecin Business Scraper
                     </h1>
-                    <p class="lead">Znajdź firmy bez stron internetowych - potencjalnych klientów!</p>
+                    <p class="lead">Znajdź firmy bez stron internetowych - potencjalnych klientów na usługi web development!</p>
                 </div>
 
+                <!-- Main Card -->
                 <div class="main-card p-4 p-md-5">
-                    <!-- Form Section -->
-                    <div id="formSection">
-                        <h4 class="mb-4"><i class="bi bi-filter"></i> Wybierz branże do skanowania</h4>
+                    <!-- Hero Section -->
+                    <div class="text-center mb-5">
+                        <h2 class="mb-3">Automatycznie znajdź firmy potrzebujące strony WWW</h2>
+                        <p class="text-muted">
+                            Bot skanuje katalogi firm w Szczecinie i znajduje te, które nie mają własnej strony internetowej.
+                            Idealne narzędzie dla freelancerów i agencji web development!
+                        </p>
+                    </div>
 
-                        <div class="d-flex flex-wrap mb-4" id="industriesContainer">
-                            <!-- Will be populated by JS -->
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-sliders"></i> Max wyników na branżę</label>
-                                <select class="form-select" id="maxResults">
-                                    <option value="3">3 (demo)</option>
-                                    <option value="5" selected>5 (zalecane)</option>
-                                    <option value="10">10</option>
-                                </select>
-                                <small class="text-muted">Większe wartości = dłuższe oczekiwanie</small>
+                    <!-- Features -->
+                    <div class="row mb-5">
+                        <div class="col-md-4 mb-4">
+                            <div class="d-flex">
+                                <div class="feature-icon me-3">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                                <div>
+                                    <h5>Skanowanie katalogów</h5>
+                                    <p class="text-muted small">Przeszukuje Panorama Firm, PKT.pl i Google Maps</p>
+                                </div>
                             </div>
                         </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="d-flex">
+                                <div class="feature-icon me-3">
+                                    <i class="bi bi-funnel"></i>
+                                </div>
+                                <div>
+                                    <h5>Filtrowanie</h5>
+                                    <p class="text-muted small">Automatycznie znajduje firmy BEZ strony WWW</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="d-flex">
+                                <div class="feature-icon me-3">
+                                    <i class="bi bi-envelope"></i>
+                                </div>
+                                <div>
+                                    <h5>Generator wiadomości</h5>
+                                    <p class="text-muted small">Tworzy spersonalizowane oferty</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                        <div class="text-center">
-                            <button class="btn btn-primary btn-lg scan-btn" id="scanBtn" onclick="startScan()">
-                                <i class="bi bi-rocket-takeoff"></i> Rozpocznij skanowanie
-                            </button>
+                    <!-- Demo Results -->
+                    <div class="mb-5">
+                        <h4 class="mb-3"><i class="bi bi-lightbulb text-warning"></i> Przykładowe wyniki</h4>
+                        <p class="text-muted mb-3">Tak wyglądają dane zebrane przez bota:</p>
+
+                        <div id="demoResults">
+                            <!-- Demo data -->
                         </div>
 
-                        <div class="alert alert-info mt-4">
+                        <div class="text-center mt-4">
+                            <button class="btn btn-primary demo-btn" onclick="loadDemo()">
+                                <i class="bi bi-play-circle"></i> Pokaż przykładowe dane
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Installation -->
+                    <div class="mb-4">
+                        <h4 class="mb-3"><i class="bi bi-terminal"></i> Jak uruchomić?</h4>
+                        <p>Bot działa lokalnie na Twoim komputerze. Instalacja w 3 krokach:</p>
+
+                        <div class="code-block mb-3">
+                            <span class="comment"># 1. Sklonuj repozytorium</span><br>
+                            <span class="command">git clone https://github.com/fpawlun-code/reachbot.git</span><br>
+                            <span class="command">cd reachbot/szczecin_scraper</span><br><br>
+
+                            <span class="comment"># 2. Zainstaluj zależności</span><br>
+                            <span class="command">python -m venv venv</span><br>
+                            <span class="command">source venv/bin/activate</span>  <span class="comment"># Windows: venv\Scripts\activate</span><br>
+                            <span class="command">pip install -r requirements.txt</span><br><br>
+
+                            <span class="comment"># 3. Uruchom skanowanie</span><br>
+                            <span class="command">python main.py --industries restauracje kawiarnie --max-results 20</span>
+                        </div>
+
+                        <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i>
-                            <strong>Jak to działa?</strong> Bot przeszukuje katalog Panorama Firm w poszukiwaniu
-                            firm ze Szczecina, które nie mają własnej strony internetowej.
+                            <strong>Wymagania:</strong> Python 3.9+, Chrome (dla Google Maps)
                         </div>
                     </div>
 
-                    <!-- Progress Section -->
-                    <div id="progressSection" class="progress-container">
-                        <div class="text-center mb-4">
-                            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
-                            <h4>Skanowanie w toku...</h4>
-                            <p class="text-muted" id="progressDetail">Przygotowywanie...</p>
-                        </div>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                                 style="width: 0%">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Results Section -->
-                    <div id="resultsSection" class="results-container">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4><i class="bi bi-check-circle text-success"></i> Wyniki skanowania</h4>
-                            <button class="btn btn-outline-primary" onclick="resetForm()">
-                                <i class="bi bi-arrow-repeat"></i> Nowe skanowanie
-                            </button>
-                        </div>
-
-                        <div class="alert alert-success">
-                            <i class="bi bi-trophy"></i>
-                            Znaleziono <strong id="resultCount">0</strong> firm bez własnej strony internetowej!
-                        </div>
-
-                        <div id="businessList" class="mt-4"></div>
-
-                        <div class="text-center mt-4">
-                            <button class="btn btn-success btn-lg me-2" onclick="downloadCSV()">
-                                <i class="bi bi-download"></i> Pobierz CSV
-                            </button>
-                            <button class="btn btn-primary btn-lg" onclick="showMessages()">
-                                <i class="bi bi-envelope"></i> Generuj wiadomości
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Messages Section -->
-                    <div id="messagesSection" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4><i class="bi bi-envelope-paper"></i> Generator wiadomości</h4>
-                            <button class="btn btn-outline-secondary" onclick="hideMessages()">
-                                <i class="bi bi-arrow-left"></i> Powrót
-                            </button>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Twoje imię</label>
-                                <input type="text" class="form-control" id="senderName" value="Jan Kowalski">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Twoja firma</label>
-                                <input type="text" class="form-control" id="senderCompany" value="WebStudio">
-                            </div>
-                        </div>
-                        <div class="row mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" id="senderEmail" value="kontakt@webstudio.pl">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Telefon</label>
-                                <input type="text" class="form-control" id="senderPhone" value="+48 123 456 789">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Strona WWW</label>
-                                <input type="text" class="form-control" id="senderWebsite" value="https://webstudio.pl">
-                            </div>
-                        </div>
-
-                        <div id="messagesList"></div>
-
-                        <div class="text-center mt-4">
-                            <button class="btn btn-success btn-lg" onclick="downloadMessages()">
-                                <i class="bi bi-download"></i> Pobierz wszystkie wiadomości (TXT)
-                            </button>
-                        </div>
+                    <!-- GitHub Link -->
+                    <div class="text-center">
+                        <a href="https://github.com/fpawlun-code/reachbot" target="_blank"
+                           class="btn btn-dark btn-lg">
+                            <i class="bi bi-github"></i> Zobacz na GitHub
+                        </a>
                     </div>
                 </div>
 
+                <!-- Footer -->
                 <div class="text-center text-white mt-4">
-                    <small><i class="bi bi-shield-check"></i> Dane z publicznych katalogów firm</small>
+                    <small>
+                        <i class="bi bi-shield-check"></i>
+                        Dane z publicznych katalogów firm. Używaj zgodnie z RODO.
+                    </small>
                 </div>
             </div>
         </div>
@@ -196,105 +181,67 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const INDUSTRIES = [
-            'restauracje', 'kawiarnie', 'fryzjerzy', 'salony kosmetyczne',
-            'dentyści', 'weterynarze', 'mechanicy', 'piekarnie',
-            'kwiaciarnie', 'fotografowie', 'prawnicy', 'biura rachunkowe'
+        // Demo data
+        const demoBusinesses = [
+            {
+                name: "Restauracja Pod Lipą",
+                industry: "Restauracje",
+                address: "ul. Wojska Polskiego 15, Szczecin",
+                phone: "+48 91 433 22 11",
+                email: "kontakt@podlipa.pl",
+                facebook: "https://facebook.com/restauracjapodlipa",
+                has_website: false
+            },
+            {
+                name: "Kawiarnia Mała Czarna",
+                industry: "Kawiarnie",
+                address: "ul. Tkacka 5, Szczecin",
+                phone: "+48 512 333 444",
+                email: "",
+                facebook: "https://facebook.com/malaczarna",
+                has_website: false
+            },
+            {
+                name: "Salon Fryzjerski Elegancja",
+                industry: "Fryzjerzy",
+                address: "al. Niepodległości 42, Szczecin",
+                phone: "+48 91 812 55 66",
+                email: "elegancja@gmail.com",
+                facebook: "",
+                has_website: false
+            },
+            {
+                name: "Mechanika Pojazdowa Auto-Max",
+                industry: "Mechanicy",
+                address: "ul. Przemysłowa 8, Szczecin",
+                phone: "+48 601 222 333",
+                email: "automax.szczecin@wp.pl",
+                facebook: "",
+                has_website: false
+            },
+            {
+                name: "Piekarnia Złoty Kłos",
+                industry: "Piekarnie",
+                address: "ul. Harcerzy 12, Szczecin",
+                phone: "+48 91 455 66 77",
+                email: "",
+                facebook: "https://facebook.com/zlotyklos",
+                has_website: false
+            }
         ];
 
-        let selectedIndustries = new Set(['restauracje', 'kawiarnie']);
-        let results = [];
+        function loadDemo() {
+            const container = document.getElementById('demoResults');
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            renderIndustries();
-        });
-
-        function renderIndustries() {
-            const container = document.getElementById('industriesContainer');
-            container.innerHTML = INDUSTRIES.map(ind => `
-                <button class="industry-btn ${selectedIndustries.has(ind) ? 'selected' : ''}"
-                        onclick="toggleIndustry('${ind}')">
-                    ${ind}
-                </button>
-            `).join('');
-        }
-
-        function toggleIndustry(ind) {
-            if (selectedIndustries.has(ind)) {
-                selectedIndustries.delete(ind);
-            } else {
-                selectedIndustries.add(ind);
-            }
-            renderIndustries();
-        }
-
-        async function startScan() {
-            if (selectedIndustries.size === 0) {
-                alert('Wybierz przynajmniej jedną branżę!');
-                return;
-            }
-
-            const maxResults = document.getElementById('maxResults').value;
-            const industries = Array.from(selectedIndustries);
-
-            document.getElementById('formSection').style.display = 'none';
-            document.getElementById('progressSection').style.display = 'block';
-            document.getElementById('resultsSection').style.display = 'none';
-
-            results = [];
-            let progress = 0;
-
-            for (let i = 0; i < industries.length; i++) {
-                const industry = industries[i];
-                document.getElementById('progressDetail').textContent = `Skanowanie: ${industry}...`;
-                progress = Math.round(((i) / industries.length) * 100);
-                updateProgress(progress);
-
-                try {
-                    const response = await fetch(`/api/scan?industry=${encodeURIComponent(industry)}&max=${maxResults}`);
-                    const data = await response.json();
-
-                    if (data.businesses) {
-                        results = results.concat(data.businesses);
-                    }
-                } catch (err) {
-                    console.error('Error scanning:', err);
-                }
-            }
-
-            updateProgress(100);
-            document.getElementById('progressDetail').textContent = 'Gotowe!';
-
-            setTimeout(() => {
-                showResults();
-            }, 500);
-        }
-
-        function updateProgress(percent) {
-            const bar = document.getElementById('progressBar');
-            bar.style.width = percent + '%';
-            bar.textContent = percent + '%';
-        }
-
-        function showResults() {
-            document.getElementById('progressSection').style.display = 'none';
-            document.getElementById('resultsSection').style.display = 'block';
-
-            const withoutWebsite = results.filter(b => !b.has_website);
-            document.getElementById('resultCount').textContent = withoutWebsite.length;
-
-            const container = document.getElementById('businessList');
-
-            if (withoutWebsite.length === 0) {
-                container.innerHTML = '<div class="alert alert-warning">Nie znaleziono firm bez strony WWW.</div>';
-                return;
-            }
-
-            container.innerHTML = withoutWebsite.map((biz, idx) => `
+            container.innerHTML = `
+                <div class="alert alert-success mb-3">
+                    <i class="bi bi-check-circle"></i>
+                    Znaleziono <strong>${demoBusinesses.length}</strong> firm bez własnej strony internetowej!
+                </div>
+            ` + demoBusinesses.map((biz, idx) => `
                 <div class="card business-card mb-3">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h5 class="card-title mb-1">${biz.name}</h5>
                                 <span class="badge bg-secondary">${biz.industry}</span>
@@ -306,164 +253,27 @@
                         </div>
                         <div class="mt-3 row">
                             <div class="col-md-6">
-                                ${biz.address ? `<p class="mb-1 small"><i class="bi bi-geo-alt"></i> ${biz.address}</p>` : ''}
-                                ${biz.phone ? `<p class="mb-1 small"><i class="bi bi-telephone"></i> ${biz.phone}</p>` : ''}
+                                <p class="mb-1 small"><i class="bi bi-geo-alt"></i> ${biz.address}</p>
+                                <p class="mb-1 small"><i class="bi bi-telephone"></i> ${biz.phone}</p>
                                 ${biz.email ? `<p class="mb-1 small"><i class="bi bi-envelope"></i> ${biz.email}</p>` : ''}
                             </div>
                             <div class="col-md-6">
                                 ${biz.facebook ? `<p class="mb-1 small"><i class="bi bi-facebook"></i> <a href="${biz.facebook}" target="_blank">Facebook</a></p>` : ''}
-                                ${biz.instagram ? `<p class="mb-1 small"><i class="bi bi-instagram"></i> <a href="${biz.instagram}" target="_blank">Instagram</a></p>` : ''}
                             </div>
                         </div>
                     </div>
                 </div>
             `).join('');
-        }
 
-        function resetForm() {
-            document.getElementById('formSection').style.display = 'block';
-            document.getElementById('progressSection').style.display = 'none';
-            document.getElementById('resultsSection').style.display = 'none';
-            document.getElementById('messagesSection').style.display = 'none';
-            updateProgress(0);
+            // Scroll to results
+            container.scrollIntoView({ behavior: 'smooth' });
         }
 
         function copyContact(idx) {
-            const withoutWebsite = results.filter(b => !b.has_website);
-            const biz = withoutWebsite[idx];
-            const text = `${biz.name}\n${biz.address || ''}\nTel: ${biz.phone || ''}\nEmail: ${biz.email || ''}`;
+            const biz = demoBusinesses[idx];
+            const text = `${biz.name}\n${biz.address}\nTel: ${biz.phone}\n${biz.email ? 'Email: ' + biz.email : ''}`;
             navigator.clipboard.writeText(text);
-            alert('Skopiowano!');
-        }
-
-        function downloadCSV() {
-            const withoutWebsite = results.filter(b => !b.has_website);
-            let csv = 'Nazwa;Branża;Adres;Telefon;Email;Facebook;Instagram\n';
-            withoutWebsite.forEach(biz => {
-                csv += `"${biz.name}";"${biz.industry}";"${biz.address || ''}";"${biz.phone || ''}";"${biz.email || ''}";"${biz.facebook || ''}";"${biz.instagram || ''}"\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'firmy_szczecin.csv';
-            a.click();
-        }
-
-        function showMessages() {
-            document.getElementById('resultsSection').style.display = 'none';
-            document.getElementById('messagesSection').style.display = 'block';
-            renderMessages();
-        }
-
-        function hideMessages() {
-            document.getElementById('messagesSection').style.display = 'none';
-            document.getElementById('resultsSection').style.display = 'block';
-        }
-
-        function renderMessages() {
-            const withoutWebsite = results.filter(b => !b.has_website);
-            const sender = {
-                name: document.getElementById('senderName').value,
-                company: document.getElementById('senderCompany').value,
-                email: document.getElementById('senderEmail').value,
-                phone: document.getElementById('senderPhone').value,
-                website: document.getElementById('senderWebsite').value
-            };
-
-            const container = document.getElementById('messagesList');
-            container.innerHTML = withoutWebsite.map((biz, idx) => {
-                const msg = generateMessage(biz, sender);
-                return `
-                    <div class="card mb-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <strong>${biz.name}</strong>
-                            <button class="btn btn-sm btn-primary" onclick="copyMessage(${idx})">
-                                <i class="bi bi-clipboard"></i> Kopiuj
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            ${biz.email ? `<p class="mb-1"><strong>Email do:</strong> ${biz.email}</p>` : ''}
-                            <p class="mb-1"><strong>Temat:</strong> ${msg.subject}</p>
-                            <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; font-size: 0.85rem;">${msg.body}</pre>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function generateMessage(biz, sender) {
-            const subject = `Propozycja współpracy - strona internetowa dla ${biz.name}`;
-            const body = `Dzień dobry,
-
-Piszę do Państwa w imieniu ${sender.company}.
-
-Zauważyłem, że firma ${biz.name} nie posiada jeszcze własnej strony internetowej. W dzisiejszych czasach obecność online jest kluczowa - ponad 80% klientów szuka usług w internecie.
-
-Specjalizujemy się w tworzeniu profesjonalnych stron dla firm z branży ${biz.industry}. Oferujemy:
-
-✓ Nowoczesny design dopasowany do Państwa marki
-✓ Optymalizację pod wyszukiwarki (SEO)
-✓ Łatwą edycję treści
-✓ Bezpłatną konsultację i wycenę
-
-Czy moglibyśmy umówić się na krótką rozmowę?
-
-Z poważaniem,
-${sender.name}
-${sender.company}
-Tel: ${sender.phone}
-${sender.website}`;
-
-            return { subject, body };
-        }
-
-        function copyMessage(idx) {
-            const withoutWebsite = results.filter(b => !b.has_website);
-            const biz = withoutWebsite[idx];
-            const sender = {
-                name: document.getElementById('senderName').value,
-                company: document.getElementById('senderCompany').value,
-                email: document.getElementById('senderEmail').value,
-                phone: document.getElementById('senderPhone').value,
-                website: document.getElementById('senderWebsite').value
-            };
-            const msg = generateMessage(biz, sender);
-            navigator.clipboard.writeText(msg.body);
-            alert('Wiadomość skopiowana!');
-        }
-
-        function downloadMessages() {
-            const withoutWebsite = results.filter(b => !b.has_website);
-            const sender = {
-                name: document.getElementById('senderName').value,
-                company: document.getElementById('senderCompany').value,
-                email: document.getElementById('senderEmail').value,
-                phone: document.getElementById('senderPhone').value,
-                website: document.getElementById('senderWebsite').value
-            };
-
-            let content = '='.repeat(70) + '\n';
-            content += 'WIADOMOŚCI DO WYSŁANIA\n';
-            content += '='.repeat(70) + '\n\n';
-
-            withoutWebsite.forEach((biz, idx) => {
-                const msg = generateMessage(biz, sender);
-                content += `${'#'.repeat(50)}\n`;
-                content += `# ${idx + 1}. ${biz.name}\n`;
-                content += `${'#'.repeat(50)}\n\n`;
-                content += `Do: ${biz.email || '(brak emaila)'}\n`;
-                content += `Temat: ${msg.subject}\n\n`;
-                content += msg.body + '\n\n\n';
-            });
-
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'wiadomosci.txt';
-            a.click();
+            alert('Skopiowano dane kontaktowe!');
         }
     </script>
 </body>
