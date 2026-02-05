@@ -1,30 +1,46 @@
 """
-Vercel Serverless Function - Scan businesses
-URL: /api/scan?industry=restauracje&max=5
+Vercel Serverless Function - Scan businesses via Google Search
+URL: /api/scan?industry=restauracje&max=20
 """
 from http.server import BaseHTTPRequestHandler
 import json
 import re
 import time
 import random
-from urllib.parse import urlparse, parse_qs, urljoin, quote
+from urllib.parse import urlparse, parse_qs, urljoin, quote_plus
 
 import requests
 from bs4 import BeautifulSoup
 
-# Spam data to filter out (Panorama Firm / WeNet contact info)
-SPAM_PHONES = {'224573095', '222992992', '801000500'}
+# Spam data to filter out
+SPAM_PHONES = {'224573095', '222992992', '801000500', '120951704'}
 SPAM_EMAILS = {'wenet.pl', 'panoramafirm.pl', 'pkt.pl'}
+SPAM_DOMAINS = ['panoramafirm.pl', 'pkt.pl', 'wenet.pl', 'yelp.com', 'tripadvisor',
+                'zomato.com', 'google.com', 'facebook.com', 'instagram.com']
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+]
+
+
+def get_headers():
+    return {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br",
+        "DNT": "1",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    }
 
 
 def make_request(url, timeout=10):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "pl-PL,pl;q=0.9,en;q=0.8",
-    }
     try:
-        response = requests.get(url, headers=headers, timeout=timeout)
+        response = requests.get(url, headers=get_headers(), timeout=timeout)
         response.raise_for_status()
         return response
     except Exception:
@@ -32,19 +48,27 @@ def make_request(url, timeout=10):
 
 
 def is_spam_phone(phone):
-    """Check if phone is spam."""
     normalized = re.sub(r'\D', '', phone)[-9:]
-    return normalized in SPAM_PHONES
+    return normalized in SPAM_PHONES or len(normalized) < 9
 
 
 def is_spam_email(email):
-    """Check if email is spam."""
     return any(spam in email.lower() for spam in SPAM_EMAILS)
 
 
+def is_spam_domain(url):
+    if not url:
+        return True
+    url_lower = url.lower()
+    return any(spam in url_lower for spam in SPAM_DOMAINS)
+
+
 def extract_phones(text):
-    """Extract phone numbers, filtering spam."""
-    patterns = [r'\+48\s*\d{3}\s*\d{3}\s*\d{3}', r'\d{3}[-.\s]?\d{3}[-.\s]?\d{3}']
+    patterns = [
+        r'\+48\s*\d{3}\s*\d{3}\s*\d{3}',
+        r'\d{3}[-.\s]?\d{3}[-.\s]?\d{3}',
+        r'\(\d{2}\)\s*\d{3}[-.\s]?\d{2}[-.\s]?\d{2}'
+    ]
     phones = []
     for pattern in patterns:
         for match in re.findall(pattern, text):
@@ -55,7 +79,6 @@ def extract_phones(text):
 
 
 def extract_emails(text):
-    """Extract emails, filtering spam."""
     pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
     emails = []
     for email in re.findall(pattern, text.lower()):
@@ -65,167 +88,233 @@ def extract_emails(text):
 
 
 def extract_social(html):
-    """Extract social media from company section only."""
     social = {"facebook": "", "instagram": ""}
 
-    # Look for Facebook - but exclude Panorama Firm's FB
     fb_matches = re.findall(r'(?:https?://)?(?:www\.)?facebook\.com/([a-zA-Z0-9._-]+)/?', html, re.I)
     for match in fb_matches:
-        if match.lower() not in ['panoramafirm', 'wenet', 'sharer', 'share']:
+        if match.lower() not in ['panoramafirm', 'wenet', 'sharer', 'share', 'pages', 'profile.php']:
             social["facebook"] = f"https://facebook.com/{match}"
             break
 
-    # Instagram
     ig = re.search(r'(?:https?://)?(?:www\.)?instagram\.com/([a-zA-Z0-9._-]+)/?', html, re.I)
-    if ig and ig.group(1).lower() not in ['panoramafirm']:
+    if ig and ig.group(1).lower() not in ['panoramafirm', 'p', 'explore']:
         social["instagram"] = f"https://instagram.com/{ig.group(1)}"
 
     return social
-
-
-def is_valid_website(url):
-    if not url:
-        return False
-    excluded = ['facebook.com', 'instagram.com', 'google.', 'panoramafirm.pl', 'pkt.pl', 'wenet.pl']
-    return not any(ex in url.lower() for ex in excluded)
 
 
 def clean_text(text):
     return ' '.join(text.split()).strip() if text else ''
 
 
-def scrape_businesses(industry, city="szczecin", max_results=5):
-    """Scrape businesses from Panorama Firm."""
-    businesses = []
-    base_url = "https://panoramafirm.pl"
-    category_url = f"{base_url}/{quote(industry)}/{city.lower()}"
+def search_google(query, num_results=20):
+    """Search Google and return business URLs."""
+    results = []
 
-    response = make_request(category_url)
+    # Google search URL
+    search_url = f"https://www.google.com/search?q={quote_plus(query)}&num={num_results + 10}&hl=pl"
+
+    response = make_request(search_url)
     if not response:
-        return businesses
+        return results
 
     soup = BeautifulSoup(response.text, "lxml")
 
-    # Find company links - be more specific
-    links = soup.select("a.addax-cs_hl_hit_company_name_click")
-    if not links:
-        # Try finding links within company cards/articles
-        cards = soup.select("article, div.company-item, div[data-id]")
-        links = []
-        for card in cards:
-            link = card.select_one("a[href*='.html']")
-            if link:
-                links.append(link)
+    # Find all search result links
+    for result in soup.select("div.g"):
+        link = result.select_one("a[href^='http']")
+        if not link:
+            continue
 
-    seen = set()
-    for link in links[:max_results * 2]:
-        if len(businesses) >= max_results:
+        url = link.get("href", "")
+
+        # Skip spam/aggregator domains
+        if is_spam_domain(url):
+            continue
+
+        # Get title
+        title_elem = result.select_one("h3")
+        title = clean_text(title_elem.get_text()) if title_elem else ""
+
+        # Get snippet for address hints
+        snippet_elem = result.select_one("div.VwiC3b, span.aCOpRe")
+        snippet = clean_text(snippet_elem.get_text()) if snippet_elem else ""
+
+        if url and title:
+            results.append({
+                "url": url,
+                "title": title,
+                "snippet": snippet
+            })
+
+        if len(results) >= num_results:
             break
 
-        href = link.get("href", "")
-        name = clean_text(link.get_text())
+    return results
 
-        if not name or not href or name in seen or len(name) < 3:
+
+def search_duckduckgo(query, num_results=20):
+    """Search DuckDuckGo as fallback."""
+    results = []
+
+    search_url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+
+    response = make_request(search_url)
+    if not response:
+        return results
+
+    soup = BeautifulSoup(response.text, "lxml")
+
+    for result in soup.select("div.result"):
+        link = result.select_one("a.result__a")
+        if not link:
             continue
-        seen.add(name)
 
-        if not href.startswith("http"):
-            href = urljoin(base_url, href)
+        url = link.get("href", "")
+        title = clean_text(link.get_text())
 
-        # Skip non-company pages
-        if '/szukaj' in href or '/kategorie' in href:
+        # DuckDuckGo uses redirect URLs, extract actual URL
+        if "uddg=" in url:
+            from urllib.parse import unquote
+            match = re.search(r'uddg=([^&]+)', url)
+            if match:
+                url = unquote(match.group(1))
+
+        if is_spam_domain(url):
             continue
 
-        time.sleep(random.uniform(0.5, 1.0))
-        detail = make_request(href, timeout=8)
+        snippet_elem = result.select_one("a.result__snippet")
+        snippet = clean_text(snippet_elem.get_text()) if snippet_elem else ""
 
-        biz = {
-            "name": name,
-            "industry": industry,
-            "address": "",
-            "phone": "",
-            "email": "",
-            "website": "",
-            "facebook": "",
-            "instagram": "",
-            "has_website": False,
-        }
+        if url and title:
+            results.append({
+                "url": url,
+                "title": title,
+                "snippet": snippet
+            })
 
-        if detail:
-            dsoup = BeautifulSoup(detail.text, "lxml")
+        if len(results) >= num_results:
+            break
 
-            # Find the main company content area (exclude header/footer)
-            main_content = dsoup.select_one("main, .company-details, article, #content")
-            if not main_content:
-                main_content = dsoup
+    return results
 
-            html = str(main_content)
 
-            # Address - look for structured data first
-            addr = main_content.select_one(
-                "[itemprop='streetAddress'], [itemprop='address'], "
-                ".street-address, .company-address, .address-line"
-            )
-            if addr:
-                biz["address"] = clean_text(addr.get_text())
-            else:
-                # Try to find address pattern
-                addr_container = main_content.select_one(".address, address")
-                if addr_container:
-                    biz["address"] = clean_text(addr_container.get_text())
+def scrape_business_page(url, title, snippet, industry):
+    """Scrape contact info from a business website."""
+    biz = {
+        "name": title,
+        "industry": industry,
+        "address": "",
+        "phone": "",
+        "email": "",
+        "website": url,
+        "facebook": "",
+        "instagram": "",
+        "has_website": True,
+    }
 
-            # Phone - look in specific company contact section
-            phone_elem = main_content.select_one(
-                "[itemprop='telephone'], "
-                ".company-phone a[href^='tel:'], "
-                ".phone-number a[href^='tel:'], "
-                "a.phone[href^='tel:']"
-            )
-            if phone_elem:
-                phone_val = phone_elem.get("href", "").replace("tel:", "")
-                if not phone_val:
-                    phone_val = clean_text(phone_elem.get_text())
-                if phone_val and not is_spam_phone(phone_val):
-                    biz["phone"] = re.sub(r'\D', '', phone_val)[-9:]
+    # Try to extract address from snippet
+    addr_match = re.search(r'(ul\.|ulica|al\.|aleja)[\s.]+[^,]+,?\s*\d{2}-\d{3}\s*\w+', snippet, re.I)
+    if addr_match:
+        biz["address"] = addr_match.group(0)
+    elif "Szczecin" in snippet:
+        # Try to find address pattern near Szczecin
+        addr_match = re.search(r'[^,]+,?\s*\d{2}-\d{3}\s*Szczecin', snippet, re.I)
+        if addr_match:
+            biz["address"] = addr_match.group(0)
 
-            # If no phone from element, try regex but only from company section
+    # Extract phone from snippet
+    phones = extract_phones(snippet)
+    if phones:
+        biz["phone"] = phones[0]
+
+    # Now visit the actual website
+    time.sleep(random.uniform(0.3, 0.8))
+    response = make_request(url, timeout=8)
+
+    if response:
+        try:
+            html = response.text
+            soup = BeautifulSoup(html, "lxml")
+
+            # Remove script and style tags
+            for tag in soup(["script", "style", "noscript"]):
+                tag.decompose()
+
+            text = soup.get_text()
+
+            # Phone
             if not biz["phone"]:
-                phones = extract_phones(html)
+                phones = extract_phones(text)
                 if phones:
                     biz["phone"] = phones[0]
 
-            # Email - look in company contact section
-            email_elem = main_content.select_one(
-                "[itemprop='email'], "
-                ".company-email a[href^='mailto:'], "
-                "a.email[href^='mailto:']"
-            )
-            if email_elem:
-                email_val = email_elem.get("href", "").replace("mailto:", "")
-                if email_val and not is_spam_email(email_val):
-                    biz["email"] = email_val
+            # Email
+            emails = extract_emails(text)
+            if emails:
+                biz["email"] = emails[0]
 
-            if not biz["email"]:
-                emails = extract_emails(html)
-                if emails:
-                    biz["email"] = emails[0]
-
-            # Website
-            www_elem = main_content.select_one(
-                "a[data-stat-id='www'], "
-                "a.company-www, "
-                "a.website-link"
+            # Address - look for structured data
+            addr_elem = soup.select_one(
+                "[itemprop='streetAddress'], [itemprop='address'], "
+                ".address, .contact-address, .location"
             )
-            if www_elem:
-                href_val = www_elem.get("href", "")
-                if is_valid_website(href_val):
-                    biz["website"] = href_val
-                    biz["has_website"] = True
+            if addr_elem and not biz["address"]:
+                biz["address"] = clean_text(addr_elem.get_text())[:100]
 
             # Social media
             social = extract_social(html)
             biz["facebook"] = social.get("facebook", "")
             biz["instagram"] = social.get("instagram", "")
+
+        except Exception:
+            pass
+
+    return biz
+
+
+def scrape_businesses(industry, city="szczecin", max_results=20):
+    """Search for businesses and scrape their info."""
+    businesses = []
+    seen_domains = set()
+
+    # Build search query
+    query = f"{industry} {city}"
+
+    # Try Google first, then DuckDuckGo
+    search_results = search_google(query, max_results + 10)
+
+    if len(search_results) < 5:
+        # Fallback to DuckDuckGo
+        search_results = search_duckduckgo(query, max_results + 10)
+
+    for result in search_results:
+        if len(businesses) >= max_results:
+            break
+
+        url = result["url"]
+
+        # Extract domain to avoid duplicates
+        try:
+            domain = urlparse(url).netloc.replace("www.", "")
+        except:
+            continue
+
+        if domain in seen_domains:
+            continue
+        seen_domains.add(domain)
+
+        # Scrape the business page
+        biz = scrape_business_page(
+            url=result["url"],
+            title=result["title"],
+            snippet=result["snippet"],
+            industry=industry
+        )
+
+        # Clean up title (remove " - strona główna" etc)
+        biz["name"] = re.sub(r'\s*[-–|]\s*(strona główna|home|oficjalna|kontakt).*$', '', biz["name"], flags=re.I)
+        biz["name"] = biz["name"][:80]  # Limit length
 
         businesses.append(biz)
 
@@ -238,7 +327,7 @@ class handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
 
         industry = params.get('industry', ['restauracje'])[0]
-        max_results = min(int(params.get('max', ['5'])[0]), 10)
+        max_results = min(int(params.get('max', ['20'])[0]), 30)
 
         try:
             businesses = scrape_businesses(industry, "szczecin", max_results)

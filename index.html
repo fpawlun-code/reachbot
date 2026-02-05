@@ -14,9 +14,12 @@
         .industry-btn.selected { background: #667eea; color: white; border-color: #667eea; }
         .business-card { border-left: 4px solid #667eea; transition: transform 0.2s; }
         .business-card:hover { transform: translateX(5px); }
+        .business-card.has-website { border-left-color: #28a745; }
         .scan-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 15px 40px; font-size: 1.1rem; }
         .scan-btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4); }
         .scan-btn:disabled { opacity: 0.7; }
+        .filter-btn { border-radius: 20px; }
+        .filter-btn.active { background: #667eea; color: white; }
     </style>
 </head>
 <body>
@@ -25,7 +28,7 @@
             <div class="col-lg-10">
                 <div class="text-center text-white mb-4">
                     <h1 class="display-4 fw-bold"><i class="bi bi-search"></i> Szczecin Business Scraper</h1>
-                    <p class="lead">Znajdź firmy bez stron internetowych - potencjalnych klientów!</p>
+                    <p class="lead">Wyszukaj TOP firmy w Szczecinie z Google i zbierz dane kontaktowe</p>
                 </div>
 
                 <div class="main-card p-4 p-md-5">
@@ -38,16 +41,18 @@
                             <div class="col-md-6">
                                 <label class="form-label">Max wyników na branżę</label>
                                 <select class="form-select" id="maxResults">
-                                    <option value="3">3 (szybkie)</option>
-                                    <option value="5" selected>5</option>
-                                    <option value="10">10 (wolniejsze)</option>
+                                    <option value="5">5 (szybkie)</option>
+                                    <option value="10">10</option>
+                                    <option value="15">15</option>
+                                    <option value="20" selected>20</option>
+                                    <option value="30">30 (wolniejsze)</option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="text-center">
                             <button class="btn btn-primary btn-lg scan-btn" id="scanBtn" onclick="startScan()">
-                                <i class="bi bi-rocket-takeoff"></i> Skanuj
+                                <i class="bi bi-rocket-takeoff"></i> Skanuj Google
                             </button>
                         </div>
                     </div>
@@ -68,9 +73,18 @@
                             <h4><i class="bi bi-check-circle text-success"></i> Wyniki</h4>
                             <button class="btn btn-outline-primary" onclick="reset()"><i class="bi bi-arrow-repeat"></i> Nowe</button>
                         </div>
-                        <div class="alert alert-success">
-                            Znaleziono <strong id="resultCount">0</strong> firm bez strony WWW!
+
+                        <div class="alert alert-info">
+                            Znaleziono <strong id="resultCount">0</strong> firm w TOP wynikach Google!
                         </div>
+
+                        <div class="mb-3">
+                            <span class="me-2">Filtruj:</span>
+                            <button class="btn btn-sm btn-outline-secondary filter-btn active" onclick="filterResults('all')">Wszystkie</button>
+                            <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="filterResults('noWeb')">Bez WWW</button>
+                            <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="filterResults('withWeb')">Ze stroną WWW</button>
+                        </div>
+
                         <div id="businessList"></div>
                         <div class="text-center mt-4">
                             <button class="btn btn-success btn-lg" onclick="downloadCSV()">
@@ -90,9 +104,10 @@
     </div>
 
     <script>
-        const INDUSTRIES = ['restauracje','kawiarnie','fryzjerzy','dentyści','mechanicy','piekarnie','kwiaciarnie','prawnicy'];
+        const INDUSTRIES = ['restauracje','kawiarnie','fryzjerzy','dentyści','mechanicy','piekarnie','kwiaciarnie','prawnicy','hotele','siłownie'];
         let selected = new Set(['restauracje']);
         let allResults = [];
+        let currentFilter = 'all';
 
         document.addEventListener('DOMContentLoaded', () => {
             const cont = document.getElementById('industries');
@@ -122,7 +137,7 @@
 
             for (let i = 0; i < industries.length; i++) {
                 const ind = industries[i];
-                document.getElementById('progressText').textContent = `Skanowanie: ${ind}...`;
+                document.getElementById('progressText').textContent = `Wyszukuję w Google: "${ind} Szczecin"...`;
                 document.getElementById('progressBar').style.width = ((i/industries.length)*100) + '%';
 
                 try {
@@ -137,33 +152,57 @@
             }
 
             document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('progressText').textContent = 'Gotowe!';
             setTimeout(showResults, 500);
+        }
+
+        function filterResults(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderBusinessList();
+        }
+
+        function getFilteredResults() {
+            if (currentFilter === 'noWeb') return allResults.filter(b => !b.has_website);
+            if (currentFilter === 'withWeb') return allResults.filter(b => b.has_website);
+            return allResults;
         }
 
         function showResults() {
             document.getElementById('progress').style.display = 'none';
             document.getElementById('results').style.display = 'block';
+            document.getElementById('resultCount').textContent = allResults.length;
+            currentFilter = 'all';
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.filter-btn').classList.add('active');
+            renderBusinessList();
+        }
 
-            const noWeb = allResults.filter(b => !b.has_website);
-            document.getElementById('resultCount').textContent = noWeb.length;
-
+        function renderBusinessList() {
+            const filtered = getFilteredResults();
             const list = document.getElementById('businessList');
-            if (noWeb.length === 0) {
-                list.innerHTML = '<div class="alert alert-warning">Nie znaleziono firm bez strony.</div>';
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="alert alert-warning">Brak wyników dla tego filtra.</div>';
                 return;
             }
 
-            list.innerHTML = noWeb.map((b,i) => `
-                <div class="card business-card mb-3">
+            list.innerHTML = filtered.map((b,i) => `
+                <div class="card business-card mb-3 ${b.has_website ? 'has-website' : ''}">
                     <div class="card-body">
                         <h5>${b.name}</h5>
                         <span class="badge bg-secondary">${b.industry}</span>
-                        <span class="badge bg-danger">Brak WWW</span>
+                        ${b.has_website
+                            ? `<span class="badge bg-success">Ma WWW</span>`
+                            : `<span class="badge bg-danger">Brak WWW</span>`}
                         <div class="mt-2 small">
                             ${b.address ? `<div><i class="bi bi-geo-alt"></i> ${b.address}</div>` : ''}
                             ${b.phone ? `<div><i class="bi bi-telephone"></i> ${b.phone}</div>` : ''}
                             ${b.email ? `<div><i class="bi bi-envelope"></i> ${b.email}</div>` : ''}
+                            ${b.website ? `<div><i class="bi bi-globe"></i> <a href="${b.website}" target="_blank">${b.website.substring(0,50)}...</a></div>` : ''}
                             ${b.facebook ? `<div><i class="bi bi-facebook"></i> <a href="${b.facebook}" target="_blank">Facebook</a></div>` : ''}
+                            ${b.instagram ? `<div><i class="bi bi-instagram"></i> <a href="${b.instagram}" target="_blank">Instagram</a></div>` : ''}
                         </div>
                     </div>
                 </div>
@@ -178,10 +217,10 @@
         }
 
         function downloadCSV() {
-            const noWeb = allResults.filter(b => !b.has_website);
-            let csv = 'Nazwa;Branża;Adres;Telefon;Email;Facebook\n';
-            noWeb.forEach(b => {
-                csv += `"${b.name}";"${b.industry}";"${b.address||''}";"${b.phone||''}";"${b.email||''}";"${b.facebook||''}"\n`;
+            const filtered = getFilteredResults();
+            let csv = 'Nazwa;Branża;Adres;Telefon;Email;Strona WWW;Facebook;Instagram\n';
+            filtered.forEach(b => {
+                csv += `"${b.name}";"${b.industry}";"${b.address||''}";"${b.phone||''}";"${b.email||''}";"${b.website||''}";"${b.facebook||''}";"${b.instagram||''}"\n`;
             });
             const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
             const a = document.createElement('a');
