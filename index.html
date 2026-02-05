@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Szczecin Business Scraper - Znajdź firmy bez stron WWW</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+        .business-card {
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s;
+        }
+        .business-card:hover {
+            transform: translateX(5px);
+        }
+        .demo-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+        }
+        .demo-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Consolas', monospace;
+            overflow-x: auto;
+        }
+        .code-block .comment { color: #6a9955; }
+        .code-block .command { color: #dcdcaa; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header -->
+                <div class="text-center text-white mb-4">
+                    <h1 class="display-4 fw-bold">
+                        <i class="bi bi-search"></i> Szczecin Business Scraper
+                    </h1>
+                    <p class="lead">Znajdź firmy bez stron internetowych - potencjalnych klientów na usługi web development!</p>
+                </div>
+
+                <!-- Main Card -->
+                <div class="main-card p-4 p-md-5">
+                    <!-- Hero Section -->
+                    <div class="text-center mb-5">
+                        <h2 class="mb-3">Automatycznie znajdź firmy potrzebujące strony WWW</h2>
+                        <p class="text-muted">
+                            Bot skanuje katalogi firm w Szczecinie i znajduje te, które nie mają własnej strony internetowej.
+                            Idealne narzędzie dla freelancerów i agencji web development!
+                        </p>
+                    </div>
+
+                    <!-- Features -->
+                    <div class="row mb-5">
+                        <div class="col-md-4 mb-4">
+                            <div class="d-flex">
+                                <div class="feature-icon me-3">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                                <div>
+                                    <h5>Skanowanie katalogów</h5>
+                                    <p class="text-muted small">Przeszukuje Panorama Firm, PKT.pl i Google Maps</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="d-flex">
+                                <div class="feature-icon me-3">
+                                    <i class="bi bi-funnel"></i>
+                                </div>
+                                <div>
+                                    <h5>Filtrowanie</h5>
+                                    <p class="text-muted small">Automatycznie znajduje firmy BEZ strony WWW</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="d-flex">
+                                <div class="feature-icon me-3">
+                                    <i class="bi bi-envelope"></i>
+                                </div>
+                                <div>
+                                    <h5>Generator wiadomości</h5>
+                                    <p class="text-muted small">Tworzy spersonalizowane oferty</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Demo Results -->
+                    <div class="mb-5">
+                        <h4 class="mb-3"><i class="bi bi-lightbulb text-warning"></i> Przykładowe wyniki</h4>
+                        <p class="text-muted mb-3">Tak wyglądają dane zebrane przez bota:</p>
+
+                        <div id="demoResults">
+                            <!-- Demo data -->
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button class="btn btn-primary demo-btn" onclick="loadDemo()">
+                                <i class="bi bi-play-circle"></i> Pokaż przykładowe dane
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Installation -->
+                    <div class="mb-4">
+                        <h4 class="mb-3"><i class="bi bi-terminal"></i> Jak uruchomić?</h4>
+                        <p>Bot działa lokalnie na Twoim komputerze. Instalacja w 3 krokach:</p>
+
+                        <div class="code-block mb-3">
+                            <span class="comment"># 1. Sklonuj repozytorium</span><br>
+                            <span class="command">git clone https://github.com/fpawlun-code/reachbot.git</span><br>
+                            <span class="command">cd reachbot/szczecin_scraper</span><br><br>
+
+                            <span class="comment"># 2. Zainstaluj zależności</span><br>
+                            <span class="command">python -m venv venv</span><br>
+                            <span class="command">source venv/bin/activate</span>  <span class="comment"># Windows: venv\Scripts\activate</span><br>
+                            <span class="command">pip install -r requirements.txt</span><br><br>
+
+                            <span class="comment"># 3. Uruchom skanowanie</span><br>
+                            <span class="command">python main.py --industries restauracje kawiarnie --max-results 20</span>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Wymagania:</strong> Python 3.9+, Chrome (dla Google Maps)
+                        </div>
+                    </div>
+
+                    <!-- GitHub Link -->
+                    <div class="text-center">
+                        <a href="https://github.com/fpawlun-code/reachbot" target="_blank"
+                           class="btn btn-dark btn-lg">
+                            <i class="bi bi-github"></i> Zobacz na GitHub
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="text-center text-white mt-4">
+                    <small>
+                        <i class="bi bi-shield-check"></i>
+                        Dane z publicznych katalogów firm. Używaj zgodnie z RODO.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Demo data
+        const demoBusinesses = [
+            {
+                name: "Restauracja Pod Lipą",
+                industry: "Restauracje",
+                address: "ul. Wojska Polskiego 15, Szczecin",
+                phone: "+48 91 433 22 11",
+                email: "kontakt@podlipa.pl",
+                facebook: "https://facebook.com/restauracjapodlipa",
+                has_website: false
+            },
+            {
+                name: "Kawiarnia Mała Czarna",
+                industry: "Kawiarnie",
+                address: "ul. Tkacka 5, Szczecin",
+                phone: "+48 512 333 444",
+                email: "",
+                facebook: "https://facebook.com/malaczarna",
+                has_website: false
+            },
+            {
+                name: "Salon Fryzjerski Elegancja",
+                industry: "Fryzjerzy",
+                address: "al. Niepodległości 42, Szczecin",
+                phone: "+48 91 812 55 66",
+                email: "elegancja@gmail.com",
+                facebook: "",
+                has_website: false
+            },
+            {
+                name: "Mechanika Pojazdowa Auto-Max",
+                industry: "Mechanicy",
+                address: "ul. Przemysłowa 8, Szczecin",
+                phone: "+48 601 222 333",
+                email: "automax.szczecin@wp.pl",
+                facebook: "",
+                has_website: false
+            },
+            {
+                name: "Piekarnia Złoty Kłos",
+                industry: "Piekarnie",
+                address: "ul. Harcerzy 12, Szczecin",
+                phone: "+48 91 455 66 77",
+                email: "",
+                facebook: "https://facebook.com/zlotyklos",
+                has_website: false
+            }
+        ];
+
+        function loadDemo() {
+            const container = document.getElementById('demoResults');
+
+            container.innerHTML = `
+                <div class="alert alert-success mb-3">
+                    <i class="bi bi-check-circle"></i>
+                    Znaleziono <strong>${demoBusinesses.length}</strong> firm bez własnej strony internetowej!
+                </div>
+            ` + demoBusinesses.map((biz, idx) => `
+                <div class="card business-card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title mb-1">${biz.name}</h5>
+                                <span class="badge bg-secondary">${biz.industry}</span>
+                                <span class="badge bg-danger">Brak strony WWW</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="copyContact(${idx})">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <div class="mt-3 row">
+                            <div class="col-md-6">
+                                <p class="mb-1 small"><i class="bi bi-geo-alt"></i> ${biz.address}</p>
+                                <p class="mb-1 small"><i class="bi bi-telephone"></i> ${biz.phone}</p>
+                                ${biz.email ? `<p class="mb-1 small"><i class="bi bi-envelope"></i> ${biz.email}</p>` : ''}
+                            </div>
+                            <div class="col-md-6">
+                                ${biz.facebook ? `<p class="mb-1 small"><i class="bi bi-facebook"></i> <a href="${biz.facebook}" target="_blank">Facebook</a></p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Scroll to results
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copyContact(idx) {
+            const biz = demoBusinesses[idx];
+            const text = `${biz.name}\n${biz.address}\nTel: ${biz.phone}\n${biz.email ? 'Email: ' + biz.email : ''}`;
+            navigator.clipboard.writeText(text);
+            alert('Skopiowano dane kontaktowe!');
+        }
+    </script>
+</body>
+</html>

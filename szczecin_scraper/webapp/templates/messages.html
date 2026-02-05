@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Wiadomości - Szczecin Business Scraper</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+        }
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .message-preview {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .channel-tab {
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 10px 10px 0 0;
+            background: #e9ecef;
+        }
+        .channel-tab.active {
+            background: #667eea;
+            color: white;
+        }
+        .business-select {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .business-select:hover {
+            background: #f8f9fa;
+        }
+        .business-select.selected {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-11">
+                <!-- Header -->
+                <div class="text-center text-white mb-4">
+                    <h1 class="display-5 fw-bold">
+                        <i class="bi bi-envelope-paper"></i> Generator Wiadomości
+                    </h1>
+                    <p class="lead">Twórz spersonalizowane wiadomości do potencjalnych klientów</p>
+                    <a href="/" class="btn btn-light btn-sm">
+                        <i class="bi bi-arrow-left"></i> Powrót do skanera
+                    </a>
+                </div>
+
+                <!-- Main Card -->
+                <div class="main-card p-4">
+                    <div class="row">
+                        <!-- Sender Settings -->
+                        <div class="col-md-4 border-end">
+                            <h5 class="mb-3"><i class="bi bi-person-badge"></i> Twoje dane</h5>
+
+                            <div class="mb-3">
+                                <label class="form-label">Imię i nazwisko</label>
+                                <input type="text" class="form-control" id="senderName"
+                                       value="Jan Kowalski" onchange="generateMessage()">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nazwa firmy</label>
+                                <input type="text" class="form-control" id="senderCompany"
+                                       value="WebStudio Szczecin" onchange="generateMessage()">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="senderEmail"
+                                       value="kontakt@webstudio.pl" onchange="generateMessage()">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Telefon</label>
+                                <input type="text" class="form-control" id="senderPhone"
+                                       value="+48 123 456 789" onchange="generateMessage()">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Strona WWW</label>
+                                <input type="text" class="form-control" id="senderWebsite"
+                                       value="https://webstudio.pl" onchange="generateMessage()">
+                            </div>
+
+                            <hr>
+
+                            <h5 class="mb-3"><i class="bi bi-building"></i> Wybierz firmę</h5>
+                            <div id="businessList" style="max-height: 300px; overflow-y: auto;">
+                                <p class="text-muted">Najpierw wykonaj skanowanie na stronie głównej.</p>
+                            </div>
+                        </div>
+
+                        <!-- Message Preview -->
+                        <div class="col-md-8">
+                            <h5 class="mb-3"><i class="bi bi-chat-text"></i> Podgląd wiadomości</h5>
+
+                            <!-- Channel Tabs -->
+                            <div class="d-flex mb-0">
+                                <div class="channel-tab active" data-channel="email" onclick="switchChannel('email')">
+                                    <i class="bi bi-envelope"></i> Email
+                                </div>
+                                <div class="channel-tab" data-channel="instagram" onclick="switchChannel('instagram')">
+                                    <i class="bi bi-instagram"></i> Instagram
+                                </div>
+                                <div class="channel-tab" data-channel="facebook" onclick="switchChannel('facebook')">
+                                    <i class="bi bi-facebook"></i> Facebook
+                                </div>
+                            </div>
+
+                            <!-- Email Preview -->
+                            <div id="emailPreview" class="channel-content">
+                                <div class="bg-light p-3 rounded-0 border">
+                                    <div class="mb-2">
+                                        <strong>Do:</strong> <span id="emailTo">-</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Temat:</strong> <span id="emailSubject">-</span>
+                                    </div>
+                                </div>
+                                <div class="message-preview rounded-0 rounded-bottom" id="emailBody">
+                                    Wybierz firmę z listy po lewej stronie...
+                                </div>
+                            </div>
+
+                            <!-- Instagram Preview -->
+                            <div id="instagramPreview" class="channel-content" style="display: none;">
+                                <div class="bg-light p-3 rounded-0 border">
+                                    <div class="mb-2">
+                                        <strong>Profil:</strong> <span id="igProfile">-</span>
+                                    </div>
+                                </div>
+                                <div class="message-preview rounded-0 rounded-bottom" id="igBody">
+                                    Wybierz firmę z listy po lewej stronie...
+                                </div>
+                            </div>
+
+                            <!-- Facebook Preview -->
+                            <div id="facebookPreview" class="channel-content" style="display: none;">
+                                <div class="bg-light p-3 rounded-0 border">
+                                    <div class="mb-2">
+                                        <strong>Strona:</strong> <span id="fbProfile">-</span>
+                                    </div>
+                                </div>
+                                <div class="message-preview rounded-0 rounded-bottom" id="fbBody">
+                                    Wybierz firmę z listy po lewej stronie...
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="mt-3 d-flex gap-2">
+                                <button class="btn btn-primary" onclick="copyCurrentMessage()">
+                                    <i class="bi bi-clipboard"></i> Kopiuj wiadomość
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="downloadAllMessages()">
+                                    <i class="bi bi-download"></i> Pobierz wszystkie (TXT)
+                                </button>
+                            </div>
+
+                            <!-- Tips -->
+                            <div class="alert alert-info mt-4">
+                                <h6><i class="bi bi-lightbulb"></i> Wskazówki:</h6>
+                                <ul class="mb-0 small">
+                                    <li>Personalizuj wiadomości - dodaj szczegóły o firmie</li>
+                                    <li>Nie wysyłaj masowo - to może być uznane za spam</li>
+                                    <li>Daj odbiorcy możliwość rezygnacji (RODO)</li>
+                                    <li>Najlepsze godziny wysyłki: wt-czw, 10:00-14:00</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let businesses = [];
+        let selectedBusiness = null;
+        let currentMessages = null;
+        let currentChannel = 'email';
+
+        // Load businesses from localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const stored = localStorage.getItem('scrapedBusinesses');
+            if (stored) {
+                businesses = JSON.parse(stored);
+                renderBusinessList();
+            }
+        });
+
+        function renderBusinessList() {
+            const container = document.getElementById('businessList');
+            if (businesses.length === 0) {
+                container.innerHTML = '<p class="text-muted">Brak firm. Wykonaj skanowanie.</p>';
+                return;
+            }
+
+            container.innerHTML = businesses.map((biz, idx) => `
+                <div class="business-select p-2 mb-1 rounded ${selectedBusiness === idx ? 'selected' : ''}"
+                     onclick="selectBusiness(${idx})">
+                    <strong>${biz.name}</strong><br>
+                    <small class="text-muted">${biz.industry}</small>
+                    ${biz.email ? '<i class="bi bi-envelope-fill text-success ms-1"></i>' : ''}
+                    ${biz.facebook ? '<i class="bi bi-facebook text-primary ms-1"></i>' : ''}
+                </div>
+            `).join('');
+        }
+
+        function selectBusiness(idx) {
+            selectedBusiness = idx;
+            renderBusinessList();
+            generateMessage();
+        }
+
+        function getSenderData() {
+            return {
+                name: document.getElementById('senderName').value,
+                company: document.getElementById('senderCompany').value,
+                email: document.getElementById('senderEmail').value,
+                phone: document.getElementById('senderPhone').value,
+                website: document.getElementById('senderWebsite').value
+            };
+        }
+
+        function generateMessage() {
+            if (selectedBusiness === null) return;
+
+            const business = businesses[selectedBusiness];
+            const sender = getSenderData();
+
+            fetch('/api/messages/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    businesses: [business],
+                    sender: sender
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.messages && data.messages.length > 0) {
+                    currentMessages = data.messages[0];
+                    updatePreview();
+                }
+            });
+        }
+
+        function updatePreview() {
+            if (!currentMessages) return;
+
+            const business = businesses[selectedBusiness];
+
+            // Email
+            document.getElementById('emailTo').textContent = business.email || '(brak emaila)';
+            document.getElementById('emailSubject').textContent = currentMessages.email?.subject || '';
+            document.getElementById('emailBody').textContent = currentMessages.email?.body || '';
+
+            // Instagram
+            document.getElementById('igProfile').textContent = business.instagram || '(brak profilu)';
+            document.getElementById('igBody').textContent = currentMessages.instagram || '';
+
+            // Facebook
+            document.getElementById('fbProfile').textContent = business.facebook || '(brak strony)';
+            document.getElementById('fbBody').textContent = currentMessages.facebook || '';
+        }
+
+        function switchChannel(channel) {
+            currentChannel = channel;
+
+            // Update tabs
+            document.querySelectorAll('.channel-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.channel === channel);
+            });
+
+            // Show/hide content
+            document.querySelectorAll('.channel-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(channel + 'Preview').style.display = 'block';
+        }
+
+        function copyCurrentMessage() {
+            if (!currentMessages) {
+                alert('Najpierw wybierz firmę!');
+                return;
+            }
+
+            let text = '';
+            if (currentChannel === 'email') {
+                text = currentMessages.email?.body || '';
+            } else if (currentChannel === 'instagram') {
+                text = currentMessages.instagram || '';
+            } else if (currentChannel === 'facebook') {
+                text = currentMessages.facebook || '';
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Skopiowano do schowka!');
+            });
+        }
+
+        function downloadAllMessages() {
+            if (businesses.length === 0) {
+                alert('Brak firm do wygenerowania wiadomości.');
+                return;
+            }
+
+            const sender = getSenderData();
+
+            fetch('/api/messages/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    businesses: businesses,
+                    sender: sender
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                let content = '='.repeat(70) + '\n';
+                content += 'WIADOMOŚCI DO WYSŁANIA\n';
+                content += 'Wygenerowano: ' + new Date().toLocaleString('pl-PL') + '\n';
+                content += '='.repeat(70) + '\n\n';
+
+                data.messages.forEach((msg, idx) => {
+                    const biz = businesses[idx];
+                    content += '#'.repeat(70) + '\n';
+                    content += `# ${idx + 1}. ${biz.name}\n`;
+                    content += '#'.repeat(70) + '\n\n';
+
+                    if (biz.email) {
+                        content += '--- EMAIL ---\n';
+                        content += `Do: ${biz.email}\n`;
+                        content += `Temat: ${msg.email?.subject || ''}\n`;
+                        content += '-'.repeat(40) + '\n';
+                        content += (msg.email?.body || '') + '\n\n';
+                    }
+
+                    if (biz.instagram) {
+                        content += '--- INSTAGRAM ---\n';
+                        content += `Profil: ${biz.instagram}\n`;
+                        content += '-'.repeat(40) + '\n';
+                        content += (msg.instagram || '') + '\n\n';
+                    }
+
+                    if (biz.facebook) {
+                        content += '--- FACEBOOK ---\n';
+                        content += `Strona: ${biz.facebook}\n`;
+                        content += '-'.repeat(40) + '\n';
+                        content += (msg.facebook || '') + '\n\n';
+                    }
+
+                    content += '\n';
+                });
+
+                // Download
+                const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'wiadomosci_' + new Date().toISOString().slice(0,10) + '.txt';
+                a.click();
+            });
+        }
+    </script>
+</body>
+</html>
