@@ -28,7 +28,7 @@
             <div class="col-lg-10">
                 <div class="text-center text-white mb-4">
                     <h1 class="display-4 fw-bold"><i class="bi bi-search"></i> Szczecin Business Scraper</h1>
-                    <p class="lead">Wyszukaj TOP firmy w Szczecinie z Google i zbierz dane kontaktowe</p>
+                    <p class="lead">Znajdź firmy w Szczecinie i zbierz dane kontaktowe</p>
                 </div>
 
                 <div class="main-card p-4 p-md-5">
@@ -52,7 +52,7 @@
 
                         <div class="text-center">
                             <button class="btn btn-primary btn-lg scan-btn" id="scanBtn" onclick="startScan()">
-                                <i class="bi bi-rocket-takeoff"></i> Skanuj Google
+                                <i class="bi bi-rocket-takeoff"></i> Skanuj firmy
                             </button>
                         </div>
                     </div>
@@ -75,7 +75,7 @@
                         </div>
 
                         <div class="alert alert-info">
-                            Znaleziono <strong id="resultCount">0</strong> firm w TOP wynikach Google!
+                            Znaleziono <strong id="resultCount">0</strong> firm w katalogach biznesowych!
                         </div>
 
                         <div class="mb-3">
@@ -137,7 +137,7 @@
 
             for (let i = 0; i < industries.length; i++) {
                 const ind = industries[i];
-                document.getElementById('progressText').textContent = `Wyszukuję w Google: "${ind} Szczecin"...`;
+                document.getElementById('progressText').textContent = `Szukam: ${ind} w Szczecinie...`;
                 document.getElementById('progressBar').style.width = ((i/industries.length)*100) + '%';
 
                 try {
