@@ -75,7 +75,7 @@
                         </div>
 
                         <div class="alert alert-info">
-                            Znaleziono <strong id="resultCount">0</strong> firm w wynikach Google!
+                            Znaleziono <strong id="resultCount">0</strong> firm!
                         </div>
 
                         <div class="mb-3">
@@ -137,7 +137,7 @@
 
             for (let i = 0; i < industries.length; i++) {
                 const ind = industries[i];
-                document.getElementById('progressText').textContent = `Szukam w Google: "${ind} Szczecin"...`;
+                document.getElementById('progressText').textContent = `Szukam: ${ind} w Szczecinie...`;
                 document.getElementById('progressBar').style.width = ((i/industries.length)*100) + '%';
 
                 try {
